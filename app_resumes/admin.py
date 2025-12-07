@@ -12,7 +12,7 @@ class TutorProfileAdmin(admin.ModelAdmin):
 class ResumeAdmin(admin.ModelAdmin):
     list_display = ("id", "student_crm_id", "is_verified", "created_at", "updated_at")
     list_filter = ("is_verified", "created_at")
-    search_fields = ("student_crm_id",)
+    search_fields = ("student_crm_id", "id")
     ordering = ("-created_at",)
 
 

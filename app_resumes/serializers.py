@@ -57,13 +57,11 @@ class TutorLoginSerializer(serializers.Serializer):
 
 class ResumeUpdateSerializer(serializers.Serializer):
     content = serializers.CharField(required=False)
-    is_verified = serializers.BooleanField(required=False)
 
 
 class ResumeCreateSerializer(serializers.Serializer):
     student_crm_id = serializers.CharField(max_length=255)
     content = serializers.CharField()
-    is_verified = serializers.BooleanField(default=False)
 
 
 class TokenSerializer(serializers.Serializer):

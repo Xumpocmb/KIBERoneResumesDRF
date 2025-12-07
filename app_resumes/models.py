@@ -11,17 +11,17 @@ class TutorProfile(models.Model):
 
     # Additional models based on CRM response
     branch_ids = models.JSONField(null=True)  # Corresponds to "branch_ids" in the JSON
-    dob = models.CharField(max_length=10, null=True)  # Corresponds to "dob" in the JSON
-    gender = models.IntegerField(null=True)  # Corresponds to "gender" in the JSON
-    streaming_id = models.IntegerField(null=True)  # Corresponds to "streaming_id" in the JSON
-    note = models.TextField(null=True)  # Corresponds to "note" in the JSON
-    e_date = models.CharField(max_length=10, null=True)  # Corresponds to "e_date" in the JSON
-    avatar_url = models.CharField(max_length=500, null=True)  # Corresponds to "avatar_url" in the JSON
-    phone = models.TextField(null=True)  # Corresponds to "phone" array in the JSON, storing as a single string
-    email = models.TextField(null=True)  # Corresponds to "email" array in the JSON, storing as a single string
-    web = models.TextField(null=True)  # Corresponds to "web" array in the JSON, storing as a single string
-    addr = models.TextField(null=True)  # Corresponds to "addr" array in the JSON, storing as a single string
-    teacher_to_skill = models.JSONField(null=True)  # Corresponds to "teacher-to-skill" in the JSON
+    dob = models.CharField(max_length=10, null=True, blank=True)  # Corresponds to "dob" in the JSON
+    gender = models.IntegerField(null=True, blank=True)  # Corresponds to "gender" in the JSON
+    streaming_id = models.IntegerField(null=True, blank=True)  # Corresponds to "streaming_id" in the JSON
+    note = models.TextField(null=True, blank=True)  # Corresponds to "note" in the JSON
+    e_date = models.CharField(max_length=10, null=True, blank=True)  # Corresponds to "e_date" in the JSON
+    avatar_url = models.CharField(max_length=500, null=True, blank=True)  # Corresponds to "avatar_url" in the JSON
+    phone = models.TextField(null=True, blank=True)  # Corresponds to "phone" array in the JSON, storing as a single string
+    email = models.TextField(null=True, blank=True)  # Corresponds to "email" array in the JSON, storing as a single string
+    web = models.TextField(null=True, blank=True)  # Corresponds to "web" array in the JSON, storing as a single string
+    addr = models.TextField(null=True, blank=True)  # Corresponds to "addr" array in the JSON, storing as a single string
+    teacher_to_skill = models.JSONField(null=True, blank=True)  # Corresponds to "teacher-to-skill" in the JSON
 
     def save(self, *args, **kwargs):
         # Process arrays from CRM response to single values before saving

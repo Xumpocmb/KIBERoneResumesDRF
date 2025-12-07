@@ -461,7 +461,47 @@ class ResumeListView(generics.ListAPIView):
 
 
 class ResumeDetailView(APIView):
-    """Update a specific resume"""
+    """
+    Update a specific resume
+
+    This endpoint allows updating a specific resume by its ID.
+    The endpoint requires authentication and accepts PUT requests with resume data.
+
+    Path parameters:
+    - resume_id: The ID of the resume to update
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Request body:
+    - content: Updated resume content (optional)
+    - is_verified: Verification status (optional)
+
+    Returns:
+    - 200 OK: Updated resume data
+    - 400 Bad Request: If the provided data is invalid
+    - 401 Unauthorized: If the tutor is not authenticated
+    - 404 Not Found: If the resume does not exist
+
+    Response format:
+    {
+        "id": resume_id,
+        "student_crm_id": student_crm_id,
+        "content": "Updated resume content...",
+        "is_verified": true/false,
+        "created_at": "2023-01-01T00:00Z",
+        "updated_at": "2023-01-01T00:00Z"
+    }
+
+    Example request:
+    PUT /api/app_resumes/resumes/1/
+    Authorization: Bearer <jwt_token>
+    {
+        "content": "Updated resume content",
+        "is_verified": true
+    }
+    """
 
     def put(self, request, resume_id):
         current_tutor = get_current_active_tutor(request)
@@ -475,18 +515,48 @@ class ResumeDetailView(APIView):
             # Update the resume
             if "content" in serializer.validated_data:
                 resume.content = serializer.validated_data["content"]
-            if "is_verified" in serializer.validated_data:
-                resume.is_verified = serializer.validated_data["is_verified"]
 
             resume.save()
             resume_serializer = ResumeSerializer(resume)
             return Response(resume_serializer.data)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors, status=status.HTTP_40_BAD_REQUEST)
 
 
 class VerifyResumeView(APIView):
-    """Verify a specific resume (requires senior tutor)"""
+    """
+    Verify a specific resume (requires senior tutor)
+
+    This endpoint allows a senior tutor to verify a specific resume by its ID.
+    The endpoint requires authentication as a senior tutor and accepts POST requests.
+
+    Path parameters:
+    - resume_id: The ID of the resume to verify
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+    - Only senior tutors have access to this endpoint
+
+    Returns:
+    - 200 OK: Verified resume data
+    - 403 Forbidden: If the tutor is not a senior tutor
+    - 404 Not Found: If the resume does not exist
+
+    Response format:
+    {
+        "id": resume_id,
+        "student_crm_id": student_crm_id,
+        "content": "Resume content...",
+        "is_verified": true,
+        "created_at": "2023-01-01T00:00Z",
+        "updated_at": "2023-01-01T00:00Z"
+    }
+
+    Example request:
+    POST /api/app_resumes/resumes/1/verify/
+    Authorization: Bearer <jwt_token>
+    """
 
     def post(self, request, resume_id):
         current_tutor = get_current_senior_tutor(request)
@@ -517,7 +587,44 @@ class UnverifiedResumesView(generics.ListAPIView):
 
 @api_view(["POST"])
 def create_resume(request):
-    """Create a new resume"""
+    """
+    Create a new resume
+
+    This endpoint allows creating a new resume for a student.
+    The endpoint requires authentication and accepts POST requests with resume data.
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Request body:
+    - student_crm_id: The CRM ID of the student (required)
+    - content: Resume content (required)
+    - is_verified: Verification status (optional, default: False)
+
+    Returns:
+    - 201 Created: Created resume data
+    - 40 Bad Request: If the provided data is invalid
+    - 401 Unauthorized: If the tutor is not authenticated
+
+    Response format:
+    {
+        "id": resume_id,
+        "student_crm_id": student_crm_id,
+        "content": "Resume content...",
+        "is_verified": true/false,
+        "created_at": "2023-01-01T00:00Z",
+        "updated_at": "2023-01-01T00:00Z"
+    }
+
+    Example request:
+    POST /api/app_resumes/resumes/
+    Authorization: Bearer <jwt_token>
+    {
+        "student_crm_id": "12345",
+        "content": "Student resume content...",
+    }
+    """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
         return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -527,7 +634,6 @@ def create_resume(request):
         resume = Resume.objects.create(
             student_crm_id=serializer.validated_data["student_crm_id"],
             content=serializer.validated_data["content"],
-            is_verified=serializer.validated_data.get("is_verified", False),
         )
         resume_serializer = ResumeSerializer(resume)
         return Response(resume_serializer.data, status=status.HTTP_201_CREATED)
@@ -537,10 +643,40 @@ def create_resume(request):
 
 @api_view(["DELETE"])
 def delete_resume(request, resume_id):
-    """Delete a specific resume"""
+    """
+    Delete a specific resume
+
+    This endpoint allows deleting a specific resume by its ID.
+    The endpoint requires authentication as a senior tutor and accepts DELETE requests.
+
+    Path parameters:
+    - resume_id: The ID of the resume to delete
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+    - Only senior tutors have access to this endpoint
+
+    Returns:
+    - 200 OK: Confirmation that the resume was deleted
+    - 403 Forbidden: If the tutor is not a senior tutor
+    - 404 Not Found: If the resume does not exist
+
+    Response format:
+    {
+        "message": "Resume deleted successfully"
+    }
+
+    Example request:
+    DELETE /api/app_resumes/resumes/1/delete/
+    Authorization: Bearer <jwt_token>
+    """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
         return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    if not current_tutor.is_senior:
+        return Response({"detail": "Senior tutor access required"}, status=status.HTTP_403_FORBIDDEN)
 
     resume = get_object_or_404(Resume, id=resume_id)
     resume.delete()

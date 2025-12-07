@@ -16,12 +16,12 @@ urlpatterns = [
     # Student endpoints
     path("clients/detail/", views.get_client_detail, name="client-detail"),
     # Resume endpoints
-    path("resumes/client/", views.ResumeListView.as_view(), name="client-resumes"),
-    path("resumes/<int:resume_id>/", views.ResumeDetailView.as_view(), name="resume-detail"),
-    path("resumes/<int:resume_id>/verify/", views.VerifyResumeView.as_view(), name="verify-resume"),
-    path("resumes/unverified/", views.UnverifiedResumesView.as_view(), name="unverified-resumes"),
     path("resumes/", views.create_resume, name="create-resume"),
-    path("resumes/<int:resume_id>/", views.delete_resume, name="delete-resume"),
+    path("resumes/unverified/", views.UnverifiedResumesView.as_view(), name="unverified-resumes"),
+    path("resumes/client/", views.ResumeListView.as_view(), name="client-resumes"),
+    path("resumes/<int:resume_id>/update/", views.ResumeDetailView.as_view(), name="resume-detail"),
+    path("resumes/<int:resume_id>/verify/", views.VerifyResumeView.as_view(), name="verify-resume"),
+    path("resumes/<int:resume_id>/delete/", views.delete_resume, name="delete-resume"),
     # Review endpoints
     path("reviews/<str:student_crm_id>/", views.ParentReviewsView.as_view(), name="parent-reviews"),
 ]
