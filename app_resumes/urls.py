@@ -14,9 +14,7 @@ urlpatterns = [
     path("tutors/<int:tutor_id>/promote-to-senior/", views.promote_to_senior, name="promote-to-senior"),
     # Group endpoints
     path("groups/clients/", views.get_group_clients, name="group-clients"),
-    path("groups/sync/", views.sync_all_groups, name="sync-groups"),
     # Student endpoints
-    path("students/sync/", views.sync_students_with_groups, name="sync-students"),
     path("clients/detail/", views.get_client_detail, name="client-detail"),
     # Resume endpoints
     path("resumes/client/", views.ResumeListView.as_view(), name="client-resumes"),

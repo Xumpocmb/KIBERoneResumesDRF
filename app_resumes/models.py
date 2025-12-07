@@ -35,6 +35,14 @@ class TutorProfile(models.Model):
             self.addr = self.addr[0] if self.addr[0] else None
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.tutor_name or f"Tutor {self.id}"
+
+    class Meta:
+        verbose_name = "Tutor Profile"
+        verbose_name_plural = "Tutor Profiles"
+        ordering = ["tutor_name"]
+
 
 class Resume(models.Model):
     id = models.AutoField(primary_key=True)
@@ -48,6 +56,14 @@ class Resume(models.Model):
         # Process any array values to single values before saving
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"Resume for student {self.student_crm_id}"
+
+    class Meta:
+        verbose_name = "Resume"
+        verbose_name_plural = "Resumes"
+        ordering = ["-created_at"]
+
 
 class ParentReview(models.Model):
     id = models.AutoField(primary_key=True)
@@ -59,6 +75,14 @@ class ParentReview(models.Model):
     def save(self, *args, **kwargs):
         # Process any array values to single values before saving
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Review for student {self.student_crm_id}"
+
+    class Meta:
+        verbose_name = "Parent Review"
+        verbose_name_plural = "Parent Reviews"
+        ordering = ["-created_at"]
 
 
 class Group(models.Model):
@@ -90,6 +114,14 @@ class Group(models.Model):
             self.teacher_ids = self.teacher_ids[0] if self.teacher_ids[0] else None
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return self.name or f"Group {self.id}"
+
+    class Meta:
+        verbose_name = "Group"
+        verbose_name_plural = "Groups"
+        ordering = ["name"]
+
 
 class Student(models.Model):
     id = models.AutoField(primary_key=True)
@@ -100,3 +132,6 @@ class Student(models.Model):
     def save(self, *args, **kwargs):
         # Process any array values to single values before saving
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.student_name or f"Student {self.id}"
