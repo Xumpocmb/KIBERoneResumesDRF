@@ -133,8 +133,6 @@ def get_tutor_data_from_crm(phone: str, branch: str = None) -> Optional[Dict[str
         response.raise_for_status()
         result = response.json()
 
-        print(result)  # Debug print to check the response structure
-
         items = result.get("items", [])
         if items:
             logger.info(f"Получены данные преподавателя для телефона {phone}")

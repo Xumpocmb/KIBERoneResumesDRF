@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 def create_access_token(data: dict):
     """Create JWT access token"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=30)
+    expire = datetime.utcnow() + timedelta(hours=1)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
     return encoded_jwt
@@ -318,7 +318,8 @@ def get_tutor_groups(request):
     else:
         # Regular tutors see only their groups (based on tutor_crm_id)
         # Find groups where the tutor is listed as a teacher by checking tutor_crm_id in the teacher_ids JSON field
-        groups = Group.objects.filter(teacher_ids__contains=current_tutor.tutor_crm_id)
+        # Use __icontains for databases that don't support __contains lookup
+        groups = Group.objects.extra(where=["teacher_ids LIKE %s"], params=[f"%{current_tutor.tutor_crm_id}%"])
 
     # Convert to the same format as the CRM response for consistency
     groups_data = []
@@ -348,7 +349,37 @@ def get_tutor_groups(request):
 
 @api_view(["GET"])
 def get_group_clients(request):
-    """Get clients in a group"""
+    """
+    Get clients in a group
+
+    This endpoint returns the list of clients (students) associated with a specific group.
+    The endpoint requires authentication and the group ID should be provided as a query parameter.
+
+    Query parameters:
+    - group_id: The ID of the group to retrieve clients for
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Returns:
+    - 200 OK: List of clients associated with the group
+    - 401 Unauthorized: If the tutor is not authenticated
+    - 404 Not Found: If the group does not exist or no clients found
+
+    Response format:
+    [
+        {
+            "customer_id": student_crm_id,
+            "client_name": student_name
+        },
+        ...
+    ]
+
+    Example request:
+    GET /api/app_resumes/groups/clients/?group_id=1
+    Authorization: Bearer <jwt_token>
+    """
     group_id = request.GET.get("group_id", "")
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
@@ -383,7 +414,40 @@ def get_group_clients(request):
 
 # Resume endpoints
 class ResumeListView(generics.ListAPIView):
-    """Get resumes for a specific client"""
+    """
+    Get resumes for a specific client
+
+    This endpoint returns the list of resumes associated with a specific student.
+    The endpoint requires authentication and the student CRM ID should be provided as a query parameter.
+
+    Query parameters:
+    - student_crm_id: The CRM ID of the student to retrieve resumes for
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Returns:
+    - 200 OK: List of resumes associated with the student
+    - 401 Unauthorized: If the tutor is not authenticated
+
+    Response format:
+    [
+        {
+            "id": resume_id,
+            "student_crm_id": student_crm_id,
+            "content": "Resume content...",
+            "is_verified": true/false,
+            "created_at": "2023-01-01T00:00:00Z",
+            "updated_at": "2023-01-01T00:00:00Z"
+        },
+        ...
+    ]
+
+    Example request:
+    GET /api/app_resumes/resumes/client/?student_crm_id=12345
+    Authorization: Bearer <jwt_token>
+    """
 
     serializer_class = ResumeSerializer
 
@@ -529,26 +593,40 @@ def get_tutor_detail(request):
     )
 
 
-# Tutor promotion endpoint
-@api_view(["POST"])
-def promote_to_senior(request, tutor_id):
-    """Promote a tutor to senior status (requires an existing senior tutor)"""
-    current_senior_tutor = get_current_senior_tutor(request)
-    if not current_senior_tutor:
-        return Response({"detail": "Senior tutor access required"}, status=status.HTTP_403_FORBIDDEN)
-
-    tutor = get_object_or_404(TutorProfile, id=tutor_id)
-
-    tutor.is_senior = True
-    tutor.save()
-    tutor_serializer = TutorProfileSerializer(tutor)
-    return Response(tutor_serializer.data)
-
-
 # Client detail endpoint
 @api_view(["GET"])
 def get_client_detail(request):
-    """Get client details"""
+    """
+    Get client details
+
+    This endpoint fetches detailed information about a specific client from the CRM system.
+    The endpoint requires authentication and the student CRM ID should be provided as a query parameter.
+
+    Query parameters:
+    - student_crm_id: The CRM ID of the student to retrieve details for
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Returns:
+    - 200 OK: Client details from the CRM system
+    - 401 Unauthorized: If the tutor is not authenticated
+    - 404 Not Found: If the client is not found in the CRM system
+
+    Response format:
+    {
+        "id": client_id,
+        "name": client_name,
+        "phone": ["+79991234567"],
+        "email": ["client@example.com"],
+        ...
+    }
+
+    Example request:
+    GET /api/app_resumes/clients/detail/?student_crm_id=12345
+    Authorization: Bearer <jwt_token>
+    """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
         return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
