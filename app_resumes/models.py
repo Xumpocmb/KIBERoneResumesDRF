@@ -17,11 +17,23 @@ class TutorProfile(models.Model):
     note = models.TextField(null=True)  # Corresponds to "note" in the JSON
     e_date = models.CharField(max_length=10, null=True)  # Corresponds to "e_date" in the JSON
     avatar_url = models.CharField(max_length=500, null=True)  # Corresponds to "avatar_url" in the JSON
-    phone = models.JSONField(null=True)  # Corresponds to "phone" array in the JSON
-    email = models.JSONField(null=True)  # Corresponds to "email" array in the JSON
-    web = models.JSONField(null=True)  # Corresponds to "web" array in the JSON
-    addr = models.JSONField(null=True)  # Corresponds to "addr" array in the JSON
+    phone = models.TextField(null=True)  # Corresponds to "phone" array in the JSON, storing as a single string
+    email = models.TextField(null=True)  # Corresponds to "email" array in the JSON, storing as a single string
+    web = models.TextField(null=True)  # Corresponds to "web" array in the JSON, storing as a single string
+    addr = models.TextField(null=True)  # Corresponds to "addr" array in the JSON, storing as a single string
     teacher_to_skill = models.JSONField(null=True)  # Corresponds to "teacher-to-skill" in the JSON
+
+    def save(self, *args, **kwargs):
+        # Process arrays from CRM response to single values before saving
+        if isinstance(self.phone, list) and len(self.phone) > 0:
+            self.phone = self.phone[0] if self.phone[0] else None
+        if isinstance(self.email, list) and len(self.email) > 0:
+            self.email = self.email[0] if self.email[0] else None
+        if isinstance(self.web, list) and len(self.web) > 0:
+            self.web = self.web[0] if self.web[0] else None
+        if isinstance(self.addr, list) and len(self.addr) > 0:
+            self.addr = self.addr[0] if self.addr[0] else None
+        super().save(*args, **kwargs)
 
 
 class Resume(models.Model):
@@ -32,6 +44,10 @@ class Resume(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        # Process any array values to single values before saving
+        super().save(*args, **kwargs)
+
 
 class ParentReview(models.Model):
     id = models.AutoField(primary_key=True)
@@ -39,6 +55,10 @@ class ParentReview(models.Model):
     content = models.TextField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Process any array values to single values before saving
+        super().save(*args, **kwargs)
 
 
 class Group(models.Model):
@@ -62,9 +82,21 @@ class Group(models.Model):
     # Relationship to tutors (many-to-many through a separate model if needed)
     tutors = models.ManyToManyField("TutorProfile", related_name="groups", blank=True)
 
+    def save(self, *args, **kwargs):
+        # Process arrays from CRM response to single values before saving
+        if isinstance(self.branch_ids, list) and len(self.branch_ids) > 0:
+            self.branch_ids = self.branch_ids[0] if self.branch_ids[0] else None
+        if isinstance(self.teacher_ids, list) and len(self.teacher_ids) > 0:
+            self.teacher_ids = self.teacher_ids[0] if self.teacher_ids[0] else None
+        super().save(*args, **kwargs)
+
 
 class Student(models.Model):
     id = models.AutoField(primary_key=True)
     student_crm_id = models.IntegerField(unique=True)  # Corresponds to "customer_id" in the JSON
     student_name = models.CharField(max_length=255)  # Corresponds to "client_name" in the JSON
     group = models.ForeignKey("Group", related_name="students", null=True, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        # Process any array values to single values before saving
+        super().save(*args, **kwargs)

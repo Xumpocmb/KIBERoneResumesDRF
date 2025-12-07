@@ -36,9 +36,23 @@ class TutorRegisterRequestSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)
     tutor_branch_id = serializers.CharField(max_length=255)
 
+    def validate_phone_number(self, value):
+        # Remove all non-digit characters from phone number
+        cleaned_phone = "".join(filter(str.isdigit, value))
+        if len(cleaned_phone) < 10:  # Minimum length check
+            raise serializers.ValidationError("Phone number must contain at least 10 digits")
+        return cleaned_phone
+
 
 class TutorLoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)
+
+    def validate_phone_number(self, value):
+        # Remove all non-digit characters from phone number
+        cleaned_phone = "".join(filter(str.isdigit, value))
+        if len(cleaned_phone) < 10:  # Minimum length check
+            raise serializers.ValidationError("Phone number must contain at least 10 digits")
+        return cleaned_phone
 
 
 class ResumeUpdateSerializer(serializers.Serializer):

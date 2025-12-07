@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -119,6 +121,27 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
 }
+
+
+# Redis settings
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
+REDIS_PORT = os.getenv("REDIS_PORT", "6379")
+REDIS_DB = os.getenv("REDIS_DB", "0")
+
+# Настройки Celery
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_TIMEZONE = "Europe/Moscow"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
+# Хранение результатов задач в базе данных Django
+CELERY_RESULT_BACKEND = "django-db"
+
+
+CRM_API_URL = os.getenv("CRM_API_URL", "")
+CRM_EMAIL = os.getenv("CRM_EMAIL", "")
+CRM_API_KEY = os.getenv("CRM_API_KEY", "")
 
 
 LOGS_DIR = BASE_DIR / "logs"

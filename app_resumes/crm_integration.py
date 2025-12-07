@@ -2,11 +2,13 @@ import requests
 import redis
 from typing import Optional, Dict, Any
 from django.conf import settings
-from django.core.cache import cache
 from app_resumes.models import TutorProfile
 import logging
 
 logger = logging.getLogger("app_resume")
+
+# Redis connection
+redis_client = redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=settings.REDIS_DB, decode_responses=True)
 
 
 BASE_HEADERS = {
@@ -21,8 +23,8 @@ def login_to_alfa_crm() -> Optional[str]:
     """
     Авторизация в CRM и получение токена.
     """
-    # Попробуем получить токен из кэша
-    cached_token = cache.get("crm_auth_token")
+    # Попробуем получить токен из Redis
+    cached_token = redis_client.get("crm_auth_token")
     if cached_token:
         return cached_token
 
@@ -35,27 +37,72 @@ def login_to_alfa_crm() -> Optional[str]:
     url = f"{base_url}/v2api/auth/login"
 
     try:
-        response = requests.post(url, headers=BASE_HEADERS, json=data)
+        response = requests.post(url, headers=BASE_HEADERS, json=data, timeout=30)
 
         if response.status_code == 200:
             token_data = response.json()
             token = token_data.get("token")
 
-            # Сохраняем токен в кэше на 1 час (3600 секунд)
+            # Сохраняем токен в Redis на 1 час (3600 секунд)
             if token:
-                cache.set("crm_auth_token", token, 3600)
+                redis_client.setex("crm_auth_token", 3600, token)
             return token
         else:
             return None
-    except Exception as e:
+    except requests.exceptions.Timeout:
+        logger.error("CRM login request timed out")
         return None
+    except requests.exceptions.ConnectionError:
+        logger.error("CRM login connection error")
+        return None
+    except Exception as e:
+        logger.error(f"Error during CRM login: {str(e)}")
+        return None
+
+
+def make_authenticated_request(url: str, headers: dict, data: dict = None, params: dict = None):
+    """
+    Выполняет аутентифицированный запрос к CRM с автоматическим обновлением токена при необходимости
+    """
+    headers = {**headers}
+
+    try:
+        response = requests.post(url, headers=headers, json=data, params=params, timeout=30)
+    except requests.exceptions.Timeout:
+        logger.error("CRM request timed out")
+        raise
+    except requests.exceptions.ConnectionError:
+        logger.error("CRM request connection error")
+        raise
+
+    # Если получили ошибку 401, пробуем обновить токен и повторить запрос
+    if response.status_code == 401:
+        logger.warning("Received 401 error, refreshing token...")
+        clear_crm_auth_token()  # Очищаем просроченный токен
+        new_token = login_to_alfa_crm()  # Получаем новый токен
+        if not new_token:
+            logger.error("Failed to refresh token after 401 error")
+            return response  # Возвращаем оригинальный ответ с ошибкой 401
+
+        # Обновляем заголовки с новым токеном
+        headers["X-ALFACRM-TOKEN"] = new_token
+        try:
+            response = requests.post(url, headers=headers, json=data, params=params, timeout=30)  # Повторяем запрос
+        except requests.exceptions.Timeout:
+            logger.error("CRM request timed out on retry")
+            raise
+        except requests.exceptions.ConnectionError:
+            logger.error("CRM request connection error on retry")
+            raise
+
+    return response
 
 
 def clear_crm_auth_token():
     """
-    Удаляет токен аутентификации CRM из кэша
+    Удаляет токен аутентификации CRM из Redis
     """
-    cache.delete("crm_auth_token")
+    redis_client.delete("crm_auth_token")
 
 
 def get_tutor_data_from_crm(phone: str, branch: str = None) -> Optional[Dict[str, Any]]:
@@ -82,9 +129,11 @@ def get_tutor_data_from_crm(phone: str, branch: str = None) -> Optional[Dict[str
 
     try:
         logger.debug(f"Отправка запроса к CRM: {url}")
-        response = requests.post(url, headers=headers, json=data)
+        response = make_authenticated_request(url, headers, data)
         response.raise_for_status()
         result = response.json()
+
+        print(result)  # Debug print to check the response structure
 
         items = result.get("items", [])
         if items:
@@ -98,6 +147,9 @@ def get_tutor_data_from_crm(phone: str, branch: str = None) -> Optional[Dict[str
         return None
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса при получении данных преподавателя: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка при получении данных преподавателя: {str(e)}")
         return None
 
 
@@ -126,7 +178,7 @@ def get_client_data_from_crm(student_crm_id: str, branch: str = None) -> Optiona
 
     try:
         logger.debug(f"Отправка запроса к CRM: {url}")
-        response = requests.post(url, headers=headers, json=data)
+        response = make_authenticated_request(url, headers, data)
         response.raise_for_status()
         result = response.json()
 
@@ -149,6 +201,9 @@ def get_client_data_from_crm(student_crm_id: str, branch: str = None) -> Optiona
         return None
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса при получении данных клиента: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка при получении данных клиента: {str(e)}")
         return None
 
 
@@ -175,7 +230,7 @@ def get_tutor_groups_from_crm(tutor_crm_id: str, branch: str = None) -> Optional
 
     try:
         logger.debug(f"Отправка запроса к CRM: {url}")
-        response = requests.post(url, headers=headers, json=data)
+        response = make_authenticated_request(url, headers, data)
         response.raise_for_status()
         result = response.json()
 
@@ -199,6 +254,9 @@ def get_tutor_groups_from_crm(tutor_crm_id: str, branch: str = None) -> Optional
         return None
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса при получении групп преподавателя: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка при получении групп преподавателя: {str(e)}")
         return None
 
 
@@ -225,7 +283,7 @@ def get_group_clients_from_crm(group_id: str, branch: str = None) -> Optional[Di
 
     try:
         logger.debug(f"Отправка запроса к CRM: {url}")
-        response = requests.post(url, headers=headers, params=params)
+        response = make_authenticated_request(url, headers, None, params)
         response.raise_for_status()
         result = response.json()
 
@@ -251,6 +309,9 @@ def get_group_clients_from_crm(group_id: str, branch: str = None) -> Optional[Di
         return None
     except requests.RequestException as e:
         logger.error(f"Ошибка запроса при получении клиентов группы: {str(e)}")
+        return None
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка при получении клиентов группы: {str(e)}")
         return None
 
 
@@ -285,7 +346,7 @@ def get_all_groups() -> Optional[Dict[str, Any]]:
 
             try:
                 logger.debug(f"Отправка запроса к CRM: {url}")
-                response = requests.post(url, headers=headers, json=data)
+                response = make_authenticated_request(url, headers, data)
                 response.raise_for_status()
                 result = response.json()
 
@@ -311,6 +372,9 @@ def get_all_groups() -> Optional[Dict[str, Any]]:
                 break
             except requests.RequestException as e:
                 logger.error(f"Ошибка запроса при получении групп для филиала {branch}: {str(e)}")
+                break
+            except Exception as e:
+                logger.error(f"Неизвестная ошибка при получении групп для филиала {branch}: {str(e)}")
                 break
 
     logger.info(f"Всего получено {len(all_items)} групп из всех филиалов")

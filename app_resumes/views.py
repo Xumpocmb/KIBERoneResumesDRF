@@ -113,7 +113,27 @@ def test_endpoint(request):
 # Tutor registration
 @api_view(["POST"])
 def register_tutor(request):
-    """Register a new tutor"""
+    """
+    Register a new tutor
+
+    This endpoint registers a new tutor by validating their phone number and tutor branch ID,
+    fetching their data from the CRM system, and creating a new TutorProfile in the database.
+
+    Required parameters:
+    - phone_number: The tutor's phone number for identification
+    - tutor_branch_id: The branch ID where the tutor is registered in the CRM
+
+    Returns:
+    - 201 Created: If the tutor is successfully registered with their profile data
+    - 400 Bad Request: If the phone number is already registered or validation fails
+    - 404 Not Found: If the tutor is not found in the CRM system
+
+    Example request body:
+    {
+        "phone_number": "+79991234567",
+        "tutor_branch_id": 1
+    }
+    """
     serializer = TutorRegisterRequestSerializer(data=request.data)
     if serializer.is_valid():
         phone_number = serializer.validated_data["phone_number"]
@@ -184,7 +204,26 @@ def register_tutor(request):
 # Tutor login
 @api_view(["POST"])
 def login_tutor(request):
-    """Login a tutor"""
+    """
+    Login a tutor
+
+    This endpoint logs in a tutor by validating their phone number,
+    fetching their updated data from the CRM system, and creating a JWT token
+    for authentication in subsequent requests.
+
+    Required parameters:
+    - phone_number: The tutor's phone number for identification
+
+    Returns:
+    - 200 OK: If the tutor is successfully authenticated with JWT token
+    - 400 Bad Request: If validation fails
+    - 401 Unauthorized: If the phone number is incorrect or tutor not found
+
+    Example request body:
+    {
+        "phone_number": "+79991234567"
+    }
+    """
     serializer = TutorLoginSerializer(data=request.data)
     if serializer.is_valid():
         phone_number = serializer.validated_data["phone_number"]
@@ -232,7 +271,42 @@ def login_tutor(request):
 
 @api_view(["GET"])
 def get_tutor_groups(request):
-    """Get tutor groups"""
+    """
+    Get tutor groups
+
+    This endpoint returns the list of groups associated with the authenticated tutor.
+    Senior tutors can see all groups, while regular tutors can only see groups they are assigned to.
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Returns:
+    - 200 OK: List of groups associated with the tutor
+    - 401 Unauthorized: If the tutor is not authenticated
+
+    Response format:
+    [
+        {
+            "id": group_id,
+            "branch_ids": [branch_id1, branch_id2, ...],
+            "teacher_ids": [teacher_id1, teacher_id2, ...],
+            "name": "Group Name",
+            "level_id": level_id,
+            "status_id": status_id,
+            "company_id": company_id,
+            "streaming_id": streaming_id,
+            "limit": max_students_count,
+            "note": "Additional notes",
+            "b_date": "start_date",
+            "e_date": "end_date",
+            "created_at": "creation_timestamp",
+            "updated_at": "update_timestamp",
+            "custom_aerodromnaya": "custom_field_value"
+        },
+        ...
+    ]
+    """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
         return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
