@@ -314,7 +314,14 @@ def get_tutor_groups(request):
     if current_tutor.is_senior:
         groups = Group.objects.all()
     else:
-        groups = Group.objects.extra(where=["teacher_ids::text LIKE %s"], params=[f'%"{current_tutor.tutor_name}"%'])
+        # Получаем все группы и фильтруем в Python
+        all_groups = Group.objects.all()
+        tutor_name = current_tutor.tutor_name
+        groups = []
+        for group in all_groups:
+            # Проверяем, содержится ли имя преподавателя в JSON-массиве teacher_ids
+            if tutor_name in group.teacher_ids:
+                groups.append(group)
 
     groups_data = []
     for group in groups:
