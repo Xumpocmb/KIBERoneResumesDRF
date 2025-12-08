@@ -103,9 +103,6 @@ class Group(models.Model):
     updated_at = models.CharField(max_length=20, null=True)  # Corresponds to "updated_at" in the JSON
     custom_aerodromnaya = models.CharField(max_length=10, null=True)  # Corresponds to "custom_aerodromnaya" in the JSON
 
-    # Relationship to tutors (many-to-many through a separate model if needed)
-    tutors = models.ManyToManyField("TutorProfile", related_name="groups", blank=True)
-
     def save(self, *args, **kwargs):
         # Process arrays from CRM response to single values before saving
         if isinstance(self.branch_ids, list) and len(self.branch_ids) > 0:
