@@ -41,7 +41,7 @@ def decode_access_token(token: str):
         return payload
     except jwt.ExpiredSignatureError:
         return None
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         return None
 
 
@@ -390,7 +390,7 @@ def get_group_clients(request):
         group_id_int = int(group_id)
 
         # Get the group from database
-        group = Group.objects.get(id=group_id_int)
+        group = Group.objects.get(crm_group_id=group_id_int)
 
         # Get all students associated with this group
         students = Student.objects.filter(group=group)
