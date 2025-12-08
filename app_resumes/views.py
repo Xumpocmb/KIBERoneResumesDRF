@@ -314,7 +314,7 @@ def get_tutor_groups(request):
     if current_tutor.is_senior:
         groups = Group.objects.all()
     else:
-        groups = Group.objects.extra(where=["teacher_ids LIKE %s"], params=[f"%{current_tutor.tutor_name}%"])
+        groups = Group.objects.extra(where=["teacher_ids::text LIKE %s"], params=[f'%"{current_tutor.tutor_name}"%'])
 
     groups_data = []
     for group in groups:
