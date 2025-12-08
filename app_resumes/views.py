@@ -311,20 +311,13 @@ def get_tutor_groups(request):
     if not current_tutor:
         return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    # Get tutor's groups from the database
     if current_tutor.is_senior:
-        # Senior tutors can see all groups
         groups = Group.objects.all()
     else:
-        # Regular tutors see only their groups (based on tutor_crm_id)
-        # Find groups where the tutor is listed as a teacher by checking tutor_crm_id in the teacher_ids JSON field
-        # Use __icontains for databases that don't support __contains lookup
-        groups = Group.objects.extra(where=["teacher_ids LIKE %s"], params=[f"%{current_tutor.tutor_crm_id}%"])
+        groups = Group.objects.extra(where=["teacher_ids LIKE %s"], params=[f"%{current_tutor.tutor_name}%"])
 
-    # Convert to the same format as the CRM response for consistency
     groups_data = []
     for group in groups:
-        # Create a format similar to what the CRM API returns
         group_data = {
             "id": group.crm_group_id,
             "branch_ids": group.branch_ids,
