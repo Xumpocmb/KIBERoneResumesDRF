@@ -16,11 +16,13 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-q^d2*#x*-*eref=8tjm4(uj319
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+ALLOWED_HOSTS = ["kiber-resume.of.by", "185.244.50.19", "localhost", "127.0.0.1", "0.0.0.0"]
 
 
 # CORS settings for React application
 CORS_ALLOWED_ORIGINS = [
+    "http://kiber-resume.of.by",
+    "https://kiber-resume.of.by",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
@@ -31,6 +33,8 @@ CORS_ALLOW_ALL_ORIGINS = False
 
 # CSRF settings for React application
 CSRF_TRUSTED_ORIGINS = [
+    "http://kiber-resume.of.by",
+    "https://kiber-resume.of.by",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
