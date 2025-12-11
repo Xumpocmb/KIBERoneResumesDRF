@@ -166,6 +166,7 @@ migrations/models/*_init.py
 **/migrations/*.py
 !**/migrations/__init__.py
 
-fixtures
-secrets
-responses
+fixtures/
+secrets/
+responses/
+files/
