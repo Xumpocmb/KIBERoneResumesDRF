@@ -22,6 +22,8 @@ urlpatterns = [
     path("resumes/<int:resume_id>/update/", views.ResumeDetailView.as_view(), name="resume-detail"),
     path("resumes/<int:resume_id>/verify/", views.VerifyResumeView.as_view(), name="verify-resume"),
     path("resumes/<int:resume_id>/delete/", views.delete_resume, name="delete-resume"),
+    path("resumes/latest-verified/", views.get_latest_verified_resume, name="latest-verified-resume"),
     # Review endpoints
+    path("reviews/", views.create_parent_review, name="create-parent-review"),
     path("reviews/<str:student_crm_id>/", views.ParentReviewsView.as_view(), name="parent-reviews"),
 ]

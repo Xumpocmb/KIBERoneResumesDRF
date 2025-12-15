@@ -683,7 +683,114 @@ def delete_resume(request, resume_id):
     return Response({"message": "Resume deleted successfully"})
 
 
+# Resume endpoints
+@api_view(["GET"])
+def get_latest_verified_resume(request):
+    """
+    Get the latest verified resume for a specific student
+
+    This endpoint returns the most recent verified resume associated with a specific student.
+    The endpoint requires authentication and the student CRM ID should be provided as a query parameter.
+
+    Query parameters:
+    - student_crm_id: The CRM ID of the student to retrieve the latest verified resume for
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Returns:
+    - 200 OK: Latest verified resume data
+    - 401 Unauthorized: If the tutor is not authenticated
+    - 404 Not Found: If no verified resume is found for the student
+
+    Response format:
+    {
+        "id": resume_id,
+        "student_crm_id": student_crm_id,
+        "content": "Resume content...",
+        "is_verified": true,
+        "created_at": "2023-01-01T00:00Z",
+        "updated_at": "2023-01-01T00:00Z"
+    }
+
+    Example request:
+    GET /api/app_resumes/resumes/latest-verified/?student_crm_id=12345
+    Authorization: Bearer <jwt_token>
+    """
+    current_tutor = get_current_active_tutor(request)
+    if not current_tutor:
+        return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    student_crm_id = request.GET.get("student_crm_id", "")
+    if not student_crm_id:
+        return Response({"detail": "student_crm_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Get the latest verified resume for the student
+    latest_resume = Resume.objects.filter(student_crm_id=student_crm_id, is_verified=True).order_by("-created_at").first()
+
+    if not latest_resume:
+        return Response({"detail": "No verified resume found for this student"}, status=status.HTTP_404_NOT_FOUND)
+
+    resume_serializer = ResumeSerializer(latest_resume)
+    return Response(resume_serializer.data)
+
+
 # Review endpoints
+@api_view(["POST"])
+def create_parent_review(request):
+    """
+    Create a new parent review
+
+    This endpoint allows creating a new parent review for a student.
+    The endpoint requires authentication and accepts POST requests with review data.
+
+    Authentication:
+    - Requires a valid JWT token in the Authorization header
+    - Token is obtained through the login endpoint
+
+    Request body:
+    - student_crm_id: The CRM ID of the student (required)
+    - content: Review content (required)
+
+    Returns:
+    - 201 Created: Created review data
+    - 400 Bad Request: If the provided data is invalid
+    - 401 Unauthorized: If the tutor is not authenticated
+
+    Response format:
+    {
+        "id": review_id,
+        "student_crm_id": student_crm_id,
+        "content": "Review content...",
+        "created_at": "2023-01-01T00:00Z",
+        "updated_at": "2023-01-01T00:00Z"
+    }
+
+    Example request:
+    POST /api/app_resumes/reviews/
+    Authorization: Bearer <jwt_token>
+    {
+        "student_crm_id": "12345",
+        "content": "Parent review content..."
+    }
+    """
+    current_tutor = get_current_active_tutor(request)
+    if not current_tutor:
+        return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    serializer = ParentReviewSerializer(data=request.data)
+    if serializer.is_valid():
+        review = ParentReview.objects.create(
+            student_crm_id=serializer.validated_data["student_crm_id"],
+            content=serializer.validated_data["content"],
+        )
+        review_serializer = ParentReviewSerializer(review)
+        return Response(review_serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_40_BAD_REQUEST)
+
+
 class ParentReviewsView(generics.ListAPIView):
     """Get parent reviews for a specific student"""
 
