@@ -684,6 +684,12 @@ def delete_resume(request, resume_id):
 
 
 # Resume endpoints
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse
+
+
+@method_decorator(csrf_exempt, name="dispatch")
 @api_view(["GET"])
 def get_latest_verified_resume(request):
     """
@@ -720,23 +726,24 @@ def get_latest_verified_resume(request):
     """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
-        return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return JsonResponse({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
     student_crm_id = request.GET.get("student_crm_id", "")
     if not student_crm_id:
-        return Response({"detail": "student_crm_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({"detail": "student_crm_id parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Get the latest verified resume for the student
     latest_resume = Resume.objects.filter(student_crm_id=student_crm_id, is_verified=True).order_by("-created_at").first()
 
     if not latest_resume:
-        return Response({"detail": "No verified resume found for this student"}, status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({"detail": "No verified resume found for this student"}, status=status.HTTP_404_NOT_FOUND)
 
     resume_serializer = ResumeSerializer(latest_resume)
-    return Response(resume_serializer.data)
+    return JsonResponse(resume_serializer.data)
 
 
 # Review endpoints
+@method_decorator(csrf_exempt, name="dispatch")
 @api_view(["POST"])
 def create_parent_review(request):
     """
@@ -777,7 +784,7 @@ def create_parent_review(request):
     """
     current_tutor = get_current_active_tutor(request)
     if not current_tutor:
-        return Response({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return JsonResponse({"detail": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
 
     serializer = ParentReviewSerializer(data=request.data)
     if serializer.is_valid():
@@ -786,9 +793,9 @@ def create_parent_review(request):
             content=serializer.validated_data["content"],
         )
         review_serializer = ParentReviewSerializer(review)
-        return Response(review_serializer.data, status=status.HTTP_201_CREATED)
+        return JsonResponse(review_serializer.data, status=status.HTTP_201_CREATED)
     else:
-        return Response(serializer.errors, status=status.HTTP_40_BAD_REQUEST)
+        return JsonResponse(serializer.errors, status=status.HTTP_40_BAD_REQUEST)
 
 
 class ParentReviewsView(generics.ListAPIView):
