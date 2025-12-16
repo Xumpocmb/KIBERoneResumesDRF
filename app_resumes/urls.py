@@ -17,7 +17,7 @@ urlpatterns = [
     path("clients/detail/", views.get_client_detail, name="client-detail"),
     # Resume endpoints
     path("resumes/", views.create_resume, name="create-resume"),
-    path("resumes/unverified/", views.get_latest_verified_resume, name="unverified-resumes"),
+    path("resumes/unverified/", views.UnverifiedResumesView.as_view(), name="unverified-resumes"),
     path("resumes/client/", views.ResumeListView.as_view(), name="client-resumes"),
     path("resumes/<int:resume_id>/update/", views.ResumeDetailView.as_view(), name="resume-detail"),
     path("resumes/<int:resume_id>/verify/", views.VerifyResumeView.as_view(), name="verify-resume"),
