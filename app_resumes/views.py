@@ -22,6 +22,9 @@ from app_resumes.crm_integration import get_tutor_data_from_crm, get_client_data
 import jwt
 from django.conf import settings
 from datetime import datetime, timedelta
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse
 
 
 # JWT token creation utility
@@ -584,6 +587,8 @@ class UnverifiedResumesView(generics.ListAPIView):
 
         return Resume.objects.filter(is_verified=False)
 
+    pagination_class = None
+
 
 @api_view(["POST"])
 def create_resume(request):
@@ -681,12 +686,6 @@ def delete_resume(request, resume_id):
     resume = get_object_or_404(Resume, id=resume_id)
     resume.delete()
     return Response({"message": "Resume deleted successfully"})
-
-
-# Resume endpoints
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.http import JsonResponse
 
 
 @method_decorator(csrf_exempt, name="dispatch")
